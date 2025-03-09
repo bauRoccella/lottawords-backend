@@ -17,12 +17,12 @@ ENV VIRTUAL_ENV=/app/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application
+# Copy the entire application first
 COPY . .
+
+# Install dependencies and the local package
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install -e .
 
 # Set environment variables
 ENV FLASK_ENV=production

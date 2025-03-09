@@ -9,4 +9,6 @@ mypy==1.8.0
 
 # Production server
 gunicorn==21.2.0
-redis==5.0.1 
+redis==5.0.1
+selenium==4.18.1
+webdriver-manager==4.0.1 

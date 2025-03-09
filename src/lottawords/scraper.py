@@ -3,6 +3,7 @@ Web scraper module for NYT Letter Boxed puzzle.
 """
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import time
 import os
 import logging
@@ -21,6 +22,8 @@ class LetterBoxedScraper:
         self.options = Options()
         self.options.add_argument('--headless=new')
         self.options.add_argument('--disable-gpu')
+        self.options.add_argument('--no-sandbox')
+        self.options.add_argument('--disable-dev-shm-usage')
         self.options.add_argument('--log-level=3')
         self.options.add_experimental_option('excludeSwitches', ['enable-logging'])
     
@@ -34,7 +37,8 @@ class LetterBoxedScraper:
                 - nyt_solution: List of words in NYT's solution
                 - nyt_dictionary: List of valid words according to NYT
         """
-        driver = webdriver.Chrome(options=self.options)
+        service = Service()
+        driver = webdriver.Chrome(service=service, options=self.options)
         
         try:
             logger.info("Fetching puzzle data from NYT...")

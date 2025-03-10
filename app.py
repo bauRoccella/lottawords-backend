@@ -47,25 +47,36 @@ from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
 
-# Configure CORS with environment variable support
-allowed_origins = os.getenv('CORS_ORIGINS', '').split(',') if os.getenv('CORS_ORIGINS') else [
-    "http://localhost:3000",  # Local development
-    "https://lottawords.vercel.app",  # Production
-    "https://lottawords-frontend.vercel.app",  # Production alternative
-    "https://lottawords-frontend-8ov362q9g-bauroccellas-projects.vercel.app",  # Previous Vercel preview
-    "https://lottawords-frontend-1ah54zbxx-bauroccellas-projects.vercel.app"   # Current Vercel preview
-]
+def is_valid_origin(origin):
+    """Check if the origin is valid"""
+    if not origin:
+        return False
+    
+    # Allow localhost
+    if origin.startswith('http://localhost:'):
+        return True
+    
+    # Allow Vercel preview URLs
+    if origin.endswith('.vercel.app'):
+        return True
+    
+    # Allow specific production domains
+    allowed_domains = [
+        'lottawords.vercel.app',
+        'lottawords-frontend.vercel.app',
+        'web-production-2361.up.railway.app'
+    ]
+    return any(origin.endswith(domain) for domain in allowed_domains)
 
-# Remove empty strings from the list
-allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+# Configure CORS with dynamic origin checking
+CORS(app, 
+     origins=is_valid_origin,
+     supports_credentials=True,
+     methods=['GET', 'OPTIONS'],
+     allow_headers=['Content-Type'],
+     expose_headers=['Content-Type'])
 
-# Add default localhost if list is empty
-if not allowed_origins:
-    allowed_origins = ["http://localhost:3000"]
-
-# Log the actual CORS configuration
-logger.info(f"Configured CORS with allowed origins: {allowed_origins}")
-CORS(app, origins=allowed_origins, supports_credentials=True, methods=["GET", "OPTIONS"], expose_headers=["Content-Type"])
+logger.info("Configured CORS with dynamic origin validation")
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')

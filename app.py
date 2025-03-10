@@ -47,36 +47,29 @@ from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
 
-def is_valid_origin(origin):
-    """Check if the origin is valid"""
-    if not origin:
-        return False
-    
-    # Allow localhost
-    if origin.startswith('http://localhost:'):
-        return True
-    
-    # Allow Vercel preview URLs
-    if origin.endswith('.vercel.app'):
-        return True
-    
-    # Allow specific production domains
-    allowed_domains = [
-        'lottawords.vercel.app',
-        'lottawords-frontend.vercel.app',
-        'web-production-2361.up.railway.app'
-    ]
-    return any(origin.endswith(domain) for domain in allowed_domains)
+# Log all incoming requests
+@app.before_request
+def log_request_info():
+    logger.info(f'Request Headers: {dict(request.headers)}')
+    logger.info(f'Request Origin: {request.headers.get("Origin")}')
 
-# Configure CORS with dynamic origin checking
+# Configure CORS
+allowed_origins = [
+    "http://localhost:3000",
+    "https://lottawords.vercel.app",
+    "https://lottawords-frontend.vercel.app",
+    "https://*.vercel.app"  # Allow all Vercel preview URLs
+]
+
+logger.info(f"Setting up CORS with allowed origins: {allowed_origins}")
+
 CORS(app, 
-     origins=is_valid_origin,
+     origins=allowed_origins,
+     allow_credentials=True,
+     methods=["GET", "OPTIONS"],
      supports_credentials=True,
-     methods=['GET', 'OPTIONS'],
-     allow_headers=['Content-Type'],
-     expose_headers=['Content-Type'])
-
-logger.info("Configured CORS with dynamic origin validation")
+     expose_headers=["Content-Type"],
+     allow_headers=["Content-Type", "Authorization", "Origin"])
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
@@ -224,15 +217,44 @@ def get_puzzle_data():
         scraping_in_progress = False
 
 @app.route('/api/status')
-def get_scraping_status():
-    """Check if initial scraping is in progress"""
-    if 'scraping_in_progress' not in globals():
-        scraping_in_progress = False
+def get_status():
+    """Health check endpoint"""
+    try:
+        # Basic application status
+        status = {
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'redis_connected': False,
+            'cache_valid': False
+        }
         
-    return jsonify({
-        'cache_valid': is_cache_valid(),
-        'scraping_in_progress': scraping_in_progress
-    })
+        # Check Redis connection
+        try:
+            redis_client.ping()
+            status['redis_connected'] = True
+        except:
+            logger.warning("Redis connection failed")
+        
+        # Check cache if Redis is connected
+        if status['redis_connected']:
+            try:
+                status['cache_valid'] = is_cache_valid()
+            except:
+                logger.warning("Cache validation failed")
+        
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Status check failed: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Internal status check failed',
+            'timestamp': datetime.now().isoformat()
+        }), 200  # Return 200 even on error for health check
+
+@app.route('/api/healthz')
+def healthz():
+    """Simple health check endpoint for Railway"""
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/api/debug')
 def debug_puzzle_data():

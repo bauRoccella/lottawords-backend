@@ -47,23 +47,42 @@ from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
 
-# Define allowed origins
-ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://lottawords.vercel.app',
-    'https://lottawords-frontend.vercel.app',
-    'https://web-production-2361.up.railway.app'
-]
+def is_valid_origin(origin):
+    """Check if the origin is valid"""
+    if not origin:
+        return False
+    
+    # Allow localhost
+    if origin.startswith('http://localhost:'):
+        return True
+    
+    # Allow Vercel preview URLs and production domains
+    if 'vercel.app' in origin:
+        return True
+    
+    # Allow Railway domain
+    if 'railway.app' in origin:
+        return True
+    
+    return False
 
-# Configure CORS with explicit origins
+# Configure CORS with dynamic origin validation
 CORS(app, 
-     origins=ALLOWED_ORIGINS,
+     origins=is_valid_origin,
      supports_credentials=True,
      methods=["GET", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "Origin"],
      expose_headers=["Content-Type"])
 
-logger.info(f"Configured CORS with allowed origins: {ALLOWED_ORIGINS}")
+logger.info("Configured CORS with dynamic origin validation")
+
+@app.before_request
+def log_request_info():
+    """Log request information for debugging"""
+    logger.info(f"Incoming request from origin: {request.headers.get('Origin')}")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request path: {request.path}")
+    logger.info(f"Request headers: {dict(request.headers)}")
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')

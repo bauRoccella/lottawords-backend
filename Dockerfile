@@ -2,15 +2,17 @@ FROM selenium/standalone-chrome:latest
 
 # Install Python 3.11 and pip
 USER root
+
+# Add Debian backports repository
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main" > /etc/apt/sources.list.d/backports.list
+
+# Install Python and build dependencies
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
     build-essential \
-    python3.11-dev \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update \
-    && apt-get install -y \
-    python3.11-full \
-    python3.11-venv \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +21,7 @@ WORKDIR /app
 
 # Create and activate virtual environment
 ENV VIRTUAL_ENV=/app/venv
-RUN python3.11 -m venv $VIRTUAL_ENV
+RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Copy requirements first

@@ -63,10 +63,11 @@ echo "Starting gunicorn..."
 # Start gunicorn with error logging
 exec gunicorn app:app \
     --bind "0.0.0.0:$PORT" \
-    --workers 2 \
+    --workers 1 \
     --timeout 120 \
     --log-level debug \
-    --error-logfile /app/logs/gunicorn-error.log \
-    --access-logfile /app/logs/gunicorn-access.log \
+    --error-logfile - \
+    --access-logfile - \
     --capture-output \
-    --preload 
+    --reload \
+    --spew 

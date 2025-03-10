@@ -266,8 +266,53 @@ def get_status():
 
 @app.route('/api/healthz')
 def healthz():
-    """Simple health check endpoint for Railway"""
-    return jsonify({'status': 'ok'}), 200
+    """Enhanced health check endpoint for Railway"""
+    try:
+        # Basic application status
+        status = {
+            'status': 'ok',
+            'timestamp': datetime.now().isoformat(),
+            'environment': os.getenv('FLASK_ENV', 'development'),
+            'services': {
+                'redis': False,
+                'selenium': False
+            }
+        }
+
+        # Check Redis connection
+        try:
+            redis_client.ping()
+            status['services']['redis'] = True
+        except Exception as e:
+            logger.warning(f"Redis healthcheck failed: {str(e)}")
+            status['services']['redis'] = False
+
+        # Check if Selenium/Chrome is accessible
+        try:
+            scraper = LetterBoxedScraper()
+            scraper.initialize_driver(headless=True)
+            scraper.quit_driver()
+            status['services']['selenium'] = True
+        except Exception as e:
+            logger.warning(f"Selenium healthcheck failed: {str(e)}")
+            status['services']['selenium'] = False
+
+        # Log the health check result
+        logger.info(f"Health check completed: {json.dumps(status)}")
+        
+        # If any critical service is down, return 500
+        if not all(status['services'].values()):
+            return jsonify(status), 500
+            
+        return jsonify(status), 200
+    except Exception as e:
+        error_msg = f"Health check failed: {str(e)}"
+        logger.error(error_msg)
+        return jsonify({
+            'status': 'error',
+            'message': error_msg,
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 @app.route('/api/debug')
 def debug_puzzle_data():

@@ -10,4 +10,7 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [deploy.env]
-PYTHONUNBUFFERED = "1" 
+PYTHONUNBUFFERED = "1"
+TZ = "UTC"
+FLASK_ENV = "production"
+GUNICORN_CMD_ARGS = "--log-level info --timeout 120" 

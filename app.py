@@ -266,54 +266,9 @@ def get_status():
 
 @app.route('/api/healthz')
 def healthz():
-    """Basic health check endpoint for Railway"""
-    try:
-        # Basic application status
-        status = {
-            'status': 'ok',
-            'timestamp': datetime.now().isoformat(),
-            'environment': os.getenv('FLASK_ENV', 'development'),
-            'services': {
-                'redis': False,
-                'selenium': False,
-                'app': True
-            }
-        }
-
-        # Check Redis connection
-        try:
-            redis_client.ping()
-            status['services']['redis'] = True
-        except Exception as e:
-            logger.warning(f"Redis healthcheck failed: {str(e)}")
-
-        # Check if Selenium/Chrome is accessible
-        try:
-            scraper = LetterBoxedScraper()
-            scraper.initialize_driver(headless=True)
-            scraper.quit_driver()
-            status['services']['selenium'] = True
-        except Exception as e:
-            logger.warning(f"Selenium healthcheck failed: {str(e)}")
-
-        # Log the health check result
-        logger.info(f"Health check completed: {json.dumps(status)}")
-        
-        # Always return 200 for Railway health check
-        return jsonify(status), 200
-    except Exception as e:
-        error_msg = f"Health check failed: {str(e)}"
-        logger.error(error_msg)
-        return jsonify({
-            'status': 'error',
-            'message': error_msg,
-            'timestamp': datetime.now().isoformat(),
-            'services': {
-                'app': True,
-                'redis': False,
-                'selenium': False
-            }
-        }), 200  # Still return 200 even on error
+    """Minimal health check endpoint for Railway"""
+    logger.info("Health check endpoint called")
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/api/debug')
 def debug_puzzle_data():
@@ -379,6 +334,12 @@ init_scheduler()
 if not is_cache_valid():
     fetch_puzzle_data()
 
+# Add startup logging
+logger.info("Flask application starting")
+logger.info(f"Environment: {os.getenv('FLASK_ENV', 'development')}")
+logger.info(f"Redis URL configured: {'REDIS_URL' in os.environ}")
+logger.info(f"Debug mode: {app.debug}")
+
 @app.route('/')
 def index():
     """Fallback route for the old template"""
@@ -389,4 +350,5 @@ def index():
                          lotta_solution=lotta_solution)
 
 if __name__ == '__main__':
+    logger.info("Starting Flask development server")
     app.run(debug=True) 

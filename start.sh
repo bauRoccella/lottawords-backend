@@ -3,8 +3,23 @@
 # Exit on error
 set -e
 
+# Enable command logging
+set -x
+
 # Default to port 8000 if PORT is not set
 PORT="${PORT:-8000}"
+
+# Print environment information
+echo "Python version:"
+python --version
+echo "Current directory:"
+pwd
+echo "Directory contents:"
+ls -la
+
+# Create logs directory
+mkdir -p /app/logs
+chmod 777 /app/logs
 
 # Wait for system to be ready
 sleep 2
@@ -31,13 +46,18 @@ if [ -z "$VIRTUAL_ENV" ]; then
     exit 1
 fi
 
+# Print installed packages
+echo "Installed Python packages:"
+pip list
+
 echo "Starting gunicorn..."
 # Start gunicorn with error logging
 exec gunicorn app:app \
     --bind "0.0.0.0:$PORT" \
     --workers 2 \
     --timeout 120 \
-    --log-level info \
+    --log-level debug \
     --error-logfile /app/logs/gunicorn-error.log \
     --access-logfile /app/logs/gunicorn-access.log \
-    --capture-output 
+    --capture-output \
+    --preload 

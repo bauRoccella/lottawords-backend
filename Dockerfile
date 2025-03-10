@@ -4,6 +4,8 @@ FROM selenium/standalone-chrome:latest
 USER root
 RUN apt-get update && apt-get install -y \
     software-properties-common \
+    build-essential \
+    python3.11-dev \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y \
@@ -20,16 +22,22 @@ ENV VIRTUAL_ENV=/app/venv
 RUN python3.11 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Copy the entire application first
+# Copy requirements first
+COPY requirements.txt .
+COPY setup.py .
+COPY MANIFEST.in .
+COPY src ./src
+
+# Upgrade pip and install dependencies
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --verbose --no-cache-dir -r requirements.txt && \
+    pip install --verbose -e .
+
+# Copy the rest of the application
 COPY . .
 
 # Make start script executable
 RUN chmod +x start.sh
-
-# Install dependencies and the local package
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install -e .
 
 # Set environment variables
 ENV FLASK_ENV=production

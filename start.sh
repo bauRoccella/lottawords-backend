@@ -16,10 +16,19 @@ echo "Current directory:"
 pwd
 echo "Directory contents:"
 ls -la
+echo "Environment variables:"
+echo "RAILWAY_PUBLIC_DOMAIN=$RAILWAY_PUBLIC_DOMAIN"
+echo "RAILWAY_SERVICE_NAME=$RAILWAY_SERVICE_NAME"
+echo "PORT=$PORT"
 
 # Create logs directory
 mkdir -p /app/logs
 chmod 777 /app/logs
+
+# Print expected URL
+if [ ! -z "$RAILWAY_PUBLIC_DOMAIN" ]; then
+    echo "Application should be available at: https://$RAILWAY_PUBLIC_DOMAIN"
+fi
 
 # Wait for system to be ready
 sleep 2

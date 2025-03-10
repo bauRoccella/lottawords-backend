@@ -2,7 +2,7 @@ import os
 import sys
 import json
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -47,34 +47,42 @@ from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
 
-def is_valid_origin(origin):
-    """Check if the origin is valid"""
-    if not origin:
-        return False
-    
-    # Allow localhost
-    if origin.startswith('http://localhost:'):
-        return True
-    
-    # Allow Vercel preview URLs and production domains
-    if 'vercel.app' in origin:
-        return True
-    
-    # Allow Railway domain
-    if 'railway.app' in origin:
-        return True
-    
-    return False
+# Configure CORS
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://*.vercel.app",
+            "https://*.railway.app"
+        ],
+        "methods": ["GET", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Origin"],
+        "supports_credentials": True
+    }
+})
 
-# Configure CORS with dynamic origin validation
-CORS(app, 
-     origins=is_valid_origin,
-     supports_credentials=True,
-     methods=["GET", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "Origin"],
-     expose_headers=["Content-Type"])
+@app.after_request
+def after_request(response):
+    """Add CORS headers to every response"""
+    origin = request.headers.get('Origin')
+    if origin and ('vercel.app' in origin or 'railway.app' in origin or origin.startswith('http://localhost:')):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
 
-logger.info("Configured CORS with dynamic origin validation")
+@app.route('/api/puzzle', methods=['OPTIONS'])
+def handle_preflight():
+    """Handle preflight requests explicitly"""
+    response = make_response()
+    origin = request.headers.get('Origin')
+    if origin and ('vercel.app' in origin or 'railway.app' in origin or origin.startswith('http://localhost:')):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
 
 @app.before_request
 def log_request_info():

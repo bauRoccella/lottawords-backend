@@ -46,7 +46,24 @@ from src.lottawords.scraper import LetterBoxedScraper
 from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with environment variable support
+allowed_origins = os.getenv('CORS_ORIGINS', '').split(',') if os.getenv('CORS_ORIGINS') else [
+    "http://localhost:3000",  # Local development
+    "https://lottawords.vercel.app",  # Production
+    "https://lottawords-frontend.vercel.app",  # Production alternative
+    "https://lottawords-frontend-8ov362q9g-bauroccellas-projects.vercel.app"  # Current Vercel preview
+]
+
+# Remove empty strings from the list
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+
+# Add default localhost if list is empty
+if not allowed_origins:
+    allowed_origins = ["http://localhost:3000"]
+
+logger.info(f"Configured CORS with allowed origins: {allowed_origins}")
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')

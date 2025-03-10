@@ -20,10 +20,16 @@ class LetterBoxedScraper:
         os.environ['WDM_LOG_LEVEL'] = '0'
         
         self.options = Options()
-        self.options.add_argument('--headless=new')
-        self.options.add_argument('--disable-gpu')
-        self.options.add_argument('--no-sandbox')
-        self.options.add_argument('--disable-dev-shm-usage')
+        
+        # Get Chrome binary path from environment or use default
+        chrome_binary = os.getenv('CHROME_BIN', '/usr/bin/chromium')
+        self.options.binary_location = chrome_binary
+        
+        # Add Chrome options from environment or use defaults
+        chrome_options = os.getenv('CHROME_OPTIONS', '--headless --disable-gpu --no-sandbox --disable-dev-shm-usage')
+        for option in chrome_options.split():
+            self.options.add_argument(option)
+            
         self.options.add_argument('--log-level=3')
         self.options.add_experimental_option('excludeSwitches', ['enable-logging'])
     
@@ -37,7 +43,7 @@ class LetterBoxedScraper:
                 - nyt_solution: List of words in NYT's solution
                 - nyt_dictionary: List of valid words according to NYT
         """
-        service = Service()
+        service = Service(executable_path=os.getenv('SELENIUM_DRIVER_HOST', '/usr/bin/chromedriver'))
         driver = webdriver.Chrome(service=service, options=self.options)
         
         try:

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
 # Default to port 8000 if PORT is not set
 PORT="${PORT:-8000}"
 
@@ -12,12 +15,23 @@ if [ ! -f "/usr/share/zoneinfo/UTC" ]; then
     apt-get update && apt-get install -y tzdata
 fi
 
-# Check if the virtual environment is active
-if [ -z "$VIRTUAL_ENV" ]; then
-    echo "Virtual environment is not active. Activating..."
-    source /app/venv/bin/activate
+# Ensure virtual environment exists
+if [ ! -d "/app/venv" ]; then
+    echo "Creating virtual environment..."
+    python -m venv /app/venv
 fi
 
+# Activate virtual environment
+echo "Activating virtual environment..."
+. /app/venv/bin/activate
+
+# Verify virtual environment is active
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "ERROR: Failed to activate virtual environment"
+    exit 1
+fi
+
+echo "Starting gunicorn..."
 # Start gunicorn with error logging
 exec gunicorn app:app \
     --bind "0.0.0.0:$PORT" \

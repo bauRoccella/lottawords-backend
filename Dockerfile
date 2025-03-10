@@ -13,14 +13,19 @@ RUN apt-get update && apt-get install -y \
 # Create and set working directory
 WORKDIR /app
 
+# Create virtual environment
+RUN python -m venv venv
+ENV PATH="/app/venv/bin:$PATH"
+
 # Copy requirements first
 COPY requirements.txt .
 COPY setup.py .
 COPY MANIFEST.in .
 COPY src ./src
 
-# Install dependencies
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+# Install dependencies in virtual environment
+RUN . /app/venv/bin/activate && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --verbose --no-cache-dir -r requirements.txt && \
     pip install --verbose -e .
 
@@ -40,6 +45,8 @@ ENV TZ=UTC
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROME_PATH=/usr/bin/chromium
 ENV CHROME_OPTIONS="--no-sandbox --headless --disable-gpu --disable-dev-shm-usage"
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/logs && \

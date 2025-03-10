@@ -52,7 +52,8 @@ allowed_origins = os.getenv('CORS_ORIGINS', '').split(',') if os.getenv('CORS_OR
     "http://localhost:3000",  # Local development
     "https://lottawords.vercel.app",  # Production
     "https://lottawords-frontend.vercel.app",  # Production alternative
-    "https://lottawords-frontend-8ov362q9g-bauroccellas-projects.vercel.app"  # Current Vercel preview
+    "https://lottawords-frontend-8ov362q9g-bauroccellas-projects.vercel.app",  # Previous Vercel preview
+    "https://lottawords-frontend-1ah54zbxx-bauroccellas-projects.vercel.app"   # Current Vercel preview
 ]
 
 # Remove empty strings from the list
@@ -62,8 +63,9 @@ allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip(
 if not allowed_origins:
     allowed_origins = ["http://localhost:3000"]
 
+# Log the actual CORS configuration
 logger.info(f"Configured CORS with allowed origins: {allowed_origins}")
-CORS(app, origins=allowed_origins, supports_credentials=True)
+CORS(app, origins=allowed_origins, supports_credentials=True, methods=["GET", "OPTIONS"], expose_headers=["Content-Type"])
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')

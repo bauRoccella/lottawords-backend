@@ -53,23 +53,36 @@ def log_request_info():
     logger.info(f'Request Headers: {dict(request.headers)}')
     logger.info(f'Request Origin: {request.headers.get("Origin")}')
 
-# Configure CORS
-allowed_origins = [
-    "http://localhost:3000",
-    "https://lottawords.vercel.app",
-    "https://lottawords-frontend.vercel.app",
-    "https://*.vercel.app"  # Allow all Vercel preview URLs
-]
+def is_valid_origin(origin):
+    """Check if the origin is valid"""
+    if not origin:
+        return False
+    
+    # Allow localhost
+    if origin.startswith('http://localhost:'):
+        return True
+    
+    # Allow Vercel preview URLs and production domains
+    if 'vercel.app' in origin:
+        return True
+    
+    # Allow specific production domains
+    allowed_domains = [
+        'lottawords.vercel.app',
+        'lottawords-frontend.vercel.app',
+        'web-production-2361.up.railway.app'
+    ]
+    return any(domain in origin for domain in allowed_domains)
 
-logger.info(f"Setting up CORS with allowed origins: {allowed_origins}")
-
+# Configure CORS with dynamic origin checking
 CORS(app, 
-     origins=allowed_origins,
-     allow_credentials=True,
-     methods=["GET", "OPTIONS"],
+     origins=is_valid_origin,
      supports_credentials=True,
-     expose_headers=["Content-Type"],
-     allow_headers=["Content-Type", "Authorization", "Origin"])
+     methods=["GET", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "Origin"],
+     expose_headers=["Content-Type"])
+
+logger.info("Configured CORS with dynamic origin validation")
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')

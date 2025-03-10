@@ -47,42 +47,23 @@ from src.lottawords.solver import LetterBoxedSolver
 
 app = Flask(__name__)
 
-# Log all incoming requests
-@app.before_request
-def log_request_info():
-    logger.info(f'Request Headers: {dict(request.headers)}')
-    logger.info(f'Request Origin: {request.headers.get("Origin")}')
+# Define allowed origins
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://lottawords.vercel.app',
+    'https://lottawords-frontend.vercel.app',
+    'https://web-production-2361.up.railway.app'
+]
 
-def is_valid_origin(origin):
-    """Check if the origin is valid"""
-    if not origin:
-        return False
-    
-    # Allow localhost
-    if origin.startswith('http://localhost:'):
-        return True
-    
-    # Allow Vercel preview URLs and production domains
-    if 'vercel.app' in origin:
-        return True
-    
-    # Allow specific production domains
-    allowed_domains = [
-        'lottawords.vercel.app',
-        'lottawords-frontend.vercel.app',
-        'web-production-2361.up.railway.app'
-    ]
-    return any(domain in origin for domain in allowed_domains)
-
-# Configure CORS with dynamic origin checking
+# Configure CORS with explicit origins
 CORS(app, 
-     origins=is_valid_origin,
+     origins=ALLOWED_ORIGINS,
      supports_credentials=True,
      methods=["GET", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "Origin"],
      expose_headers=["Content-Type"])
 
-logger.info("Configured CORS with dynamic origin validation")
+logger.info(f"Configured CORS with allowed origins: {ALLOWED_ORIGINS}")
 
 # Configure Redis
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
@@ -267,19 +248,8 @@ def get_status():
 @app.route('/api/healthz')
 def healthz():
     """Minimal health check endpoint for Railway"""
-    try:
-        logger.info("Health check endpoint called")
-        # Try to import all required modules to verify app is working
-        import flask
-        import flask_cors
-        import redis
-        import logging
-        # Log successful imports
-        logger.info("All required modules imported successfully")
-        return jsonify({'status': 'ok'}), 200
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    logger.info("Health check endpoint called")
+    return 'OK', 200
 
 @app.errorhandler(500)
 def handle_500_error(e):

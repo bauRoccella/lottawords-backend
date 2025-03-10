@@ -50,14 +50,12 @@ app = Flask(__name__)
 # Configure CORS
 CORS(app, resources={
     r"/*": {
-        "origins": [
-            "http://localhost:3000",
-            "https://*.vercel.app",
-            "https://*.railway.app"
-        ],
+        "origins": "*",  # Allow all origins initially, we'll filter in after_request
         "methods": ["GET", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Origin"],
-        "supports_credentials": True
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+        "send_wildcard": False  # Required when supports_credentials is True
     }
 })
 
@@ -65,23 +63,26 @@ CORS(app, resources={
 def after_request(response):
     """Add CORS headers to every response"""
     origin = request.headers.get('Origin')
-    if origin and ('vercel.app' in origin or 'railway.app' in origin or origin.startswith('http://localhost:')):
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Origin'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-    return response
-
-@app.route('/api/puzzle', methods=['OPTIONS'])
-def handle_preflight():
-    """Handle preflight requests explicitly"""
-    response = make_response()
-    origin = request.headers.get('Origin')
-    if origin and ('vercel.app' in origin or 'railway.app' in origin or origin.startswith('http://localhost:')):
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Origin'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    
+    # Log the origin for debugging
+    logger.info(f"Processing response for origin: {origin}")
+    
+    # Check if origin is allowed
+    if origin:
+        if (origin.startswith('http://localhost:') or
+            'vercel.app' in origin or
+            'railway.app' in origin):
+            
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Max-Age'] = '3600'  # Cache preflight for 1 hour
+            
+            logger.info(f"CORS headers set for origin: {origin}")
+        else:
+            logger.warning(f"Rejected origin: {origin}")
+    
     return response
 
 @app.before_request

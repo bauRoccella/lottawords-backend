@@ -10,16 +10,9 @@ set -x
 PORT="${PORT:-8000}"
 
 # Print environment information
-echo "Python version:"
-python --version
-echo "Current directory:"
-pwd
-echo "Directory contents:"
-ls -la
-echo "Environment variables:"
-echo "RAILWAY_PUBLIC_DOMAIN=$RAILWAY_PUBLIC_DOMAIN"
-echo "RAILWAY_SERVICE_NAME=$RAILWAY_SERVICE_NAME"
-echo "PORT=$PORT"
+echo "Current directory: $(pwd)"
+echo "Python version: $(python3 --version)"
+echo "Directory contents: $(ls -la)"
 
 # Create logs directory
 mkdir -p /app/logs
@@ -58,6 +51,9 @@ fi
 # Print installed packages
 echo "Installed Python packages:"
 pip list
+
+# Install dependencies
+pip install -r requirements.txt
 
 echo "Starting gunicorn..."
 # Start gunicorn with error logging

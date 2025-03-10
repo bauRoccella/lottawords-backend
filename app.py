@@ -267,8 +267,29 @@ def get_status():
 @app.route('/api/healthz')
 def healthz():
     """Minimal health check endpoint for Railway"""
-    logger.info("Health check endpoint called")
-    return jsonify({'status': 'ok'}), 200
+    try:
+        logger.info("Health check endpoint called")
+        # Try to import all required modules to verify app is working
+        import flask
+        import flask_cors
+        import redis
+        import logging
+        # Log successful imports
+        logger.info("All required modules imported successfully")
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.errorhandler(500)
+def handle_500_error(e):
+    logger.error(f"Internal server error: {str(e)}")
+    return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled exception: {str(e)}")
+    return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 @app.route('/api/debug')
 def debug_puzzle_data():

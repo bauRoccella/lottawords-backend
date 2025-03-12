@@ -93,53 +93,77 @@ def log_request_info():
     logger.info(f"Request path: {request.path}")
     logger.info(f"Request headers: {dict(request.headers)}")
 
-# Configure Redis
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-redis_client = redis.from_url(redis_url)
-CACHE_KEY = 'puzzle_data'
+# Add the memory cache dictionary
+memory_cache = {
+    'puzzle_data': None,
+    'last_updated': None
+}
 
+# Replace the Redis setup section with this
+try:
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+    redis_client = redis.from_url(redis_url)
+    USING_REDIS = True
+except:
+    logger.warning("Redis connection failed, falling back to memory cache")
+    USING_REDIS = False
+
+# Replace the cache functions with these versions
 def is_cache_valid():
     """Check if cache is valid (from today and after the last puzzle update)"""
     try:
-        cached_data = redis_client.get(CACHE_KEY)
-        if not cached_data:
-            return False
-            
-        cache_dict = json.loads(cached_data)
+        if USING_REDIS:
+            cached_data = redis_client.get(CACHE_KEY)
+            if not cached_data:
+                return False
+            cache_dict = json.loads(cached_data)
+        else:
+            if not memory_cache['puzzle_data']:
+                return False
+            cache_dict = {
+                'last_updated': memory_cache['last_updated'].isoformat() if memory_cache['last_updated'] else None
+            }
+        
         last_updated = datetime.fromisoformat(cache_dict['last_updated'])
         now = datetime.now(pytz.timezone('US/Eastern'))
         cutoff_time = now.replace(hour=3, minute=5, second=0, microsecond=0)
         
-        # If we're before 3:05 AM, the cutoff was yesterday
         if now.hour < 3 or (now.hour == 3 and now.minute < 5):
             cutoff_time = cutoff_time - timedelta(days=1)
         
-        # Cache is valid if it's from after the most recent cutoff time
         return last_updated.astimezone(pytz.timezone('US/Eastern')) >= cutoff_time
     except Exception as e:
         logger.error(f"Error checking cache validity: {e}")
         return False
 
 def get_cached_data():
-    """Get cached puzzle data from Redis"""
+    """Get cached puzzle data"""
     try:
-        cached_data = redis_client.get(CACHE_KEY)
-        if cached_data:
-            return json.loads(cached_data)
+        if USING_REDIS:
+            cached_data = redis_client.get(CACHE_KEY)
+            if cached_data:
+                return json.loads(cached_data)
+        else:
+            if memory_cache['puzzle_data']:
+                return memory_cache['puzzle_data']
         return None
     except Exception as e:
         logger.error(f"Error getting cached data: {e}")
         return None
 
 def save_cache_data(data):
-    """Save puzzle data to Redis"""
+    """Save puzzle data to cache"""
     try:
         cache_dict = {
             'puzzle_data': data,
             'last_updated': datetime.now().isoformat()
         }
-        redis_client.set(CACHE_KEY, json.dumps(cache_dict))
-        logger.info("Cache saved to Redis")
+        if USING_REDIS:
+            redis_client.set(CACHE_KEY, json.dumps(cache_dict))
+        else:
+            memory_cache['puzzle_data'] = data
+            memory_cache['last_updated'] = datetime.now()
+        logger.info(f"Cache saved to {'Redis' if USING_REDIS else 'memory'}")
     except Exception as e:
         logger.error(f"Error saving cache: {e}")
 
